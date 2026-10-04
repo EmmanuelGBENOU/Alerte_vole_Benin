@@ -24,12 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - uses: actions/checkout@v7
       - name: Vérifier le site
-        run: python surveille_site.py $MODE
+        run: python3 surveille_site.py $MODE   # Python du serveur GitHub : aucune dépendance
         env:
           MODE: ${{ (github.event.schedule == '17 7 * * 1' || inputs.mode == 'bilan') && '--bilan' || inputs.mode == 'test' && '--test' || '' }}
           LIEN_ARRET: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/surveillance.yml
