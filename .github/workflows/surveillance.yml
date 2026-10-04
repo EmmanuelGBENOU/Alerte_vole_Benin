@@ -1,0 +1,49 @@
+name: Surveillance voyage.benin.bj
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # vérification toutes les 10 minutes
+    - cron: "17 7 * * 1"     # bilan hebdo le lundi vers 9h (heure de Paris)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Que faire ?"
+        type: choice
+        options: [verifier, test, bilan]
+        default: verifier
+
+permissions:
+  contents: write   # pour sauvegarder etat.json
+
+concurrency:
+  group: surveillance
+  cancel-in-progress: false
+
+jobs:
+  surveiller:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Vérifier le site
+        run: python surveille_site.py $MODE
+        env:
+          MODE: ${{ (github.event.schedule == '17 7 * * 1' || inputs.mode == 'bilan') && '--bilan' || inputs.mode == 'test' && '--test' || '' }}
+          LIEN_ARRET: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/surveillance.yml
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          WHATSAPP_APIKEY: ${{ secrets.WHATSAPP_APIKEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+      - name: Sauvegarder l'état
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add etat.json 2>/dev/null || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "Mise à jour de l'état"
+          git pull --rebase --quiet && git push
