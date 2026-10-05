@@ -2,8 +2,7 @@ name: Surveillance voyage.benin.bj
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # vérification toutes les 10 minutes
-    - cron: "17 7 * * 1"     # bilan hebdo le lundi vers 9h (heure de Paris)
+    - cron: "*/10 * * * *"   # filet de sécurité : GitHub ne garantit pas cet horaire (voir README)
   workflow_dispatch:
     inputs:
       mode:
@@ -28,7 +27,7 @@ jobs:
       - name: Vérifier le site
         run: python3 surveille_site.py $MODE   # Python du serveur GitHub : aucune dépendance
         env:
-          MODE: ${{ (github.event.schedule == '17 7 * * 1' || inputs.mode == 'bilan') && '--bilan' || inputs.mode == 'test' && '--test' || '' }}
+          MODE: ${{ inputs.mode == 'bilan' && '--bilan' || inputs.mode == 'test' && '--test' || '' }}
           LIEN_ARRET: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/surveillance.yml
           WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
           WHATSAPP_APIKEY: ${{ secrets.WHATSAPP_APIKEY }}

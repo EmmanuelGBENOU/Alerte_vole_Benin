@@ -11,7 +11,7 @@ par e-mail** dès que la page « Bientôt disponible » est remplacée par le vr
 | 🚨 **Le site est OUVERT !** | Ouverture confirmée par 3 vérifications espacées de 2 min |
 | 🔔 Rappel | Toutes les 4 h tant que le site est ouvert et que tu n'as pas arrêté la surveillance |
 | ℹ️ La page d'attente a changé | Le texte d'attente a été modifié (ex. une date annoncée), **sans** ouverture |
-| ✅ Bilan hebdo | Chaque lundi vers 9h : preuve que la surveillance tourne toujours |
+| ✅ Bilan hebdo | Chaque lundi, au 1er passage après 9h (heure de Paris l'été) : preuve que la surveillance tourne toujours |
 
 ## Protection contre les fausses alertes
 
@@ -60,6 +60,34 @@ Les secrets sont chiffrés et invisibles, même si le dépôt est public.
 **Actions → Surveillance voyage.benin.bj → Run workflow → mode `test`**.
 Tu dois recevoir un WhatsApp et un e-mail. Si un envoi échoue, le passage apparaît
 en rouge et GitHub t'envoie un e-mail avec le détail.
+
+### 5. Déclenchement fiable toutes les 10 min (cron-job.org)
+
+GitHub ne garantit pas l'horaire de ses tâches planifiées : en pratique il en saute
+beaucoup (parfois un seul passage toutes les 3 h). Le service gratuit cron-job.org
+lance donc la vérification toutes les 10 minutes ; la planification GitHub reste en secours.
+
+**a. Jeton GitHub limité à ce dépôt** : https://github.com/settings/personal-access-tokens/new
+- *Token name* : `cron-job.org` ; *Expiration* : 1 an (date personnalisée)
+- *Repository access* : **Only select repositories** → `Alerte_vole_Benin`
+- *Permissions* → *Repository permissions* → **Actions : Read and write**
+- *Generate token*, puis copie-le (il ne s'affiche qu'une fois)
+
+**b. Tâche cron-job.org** : crée un compte gratuit sur https://cron-job.org puis *Create cronjob* :
+- *URL* : `https://api.github.com/repos/EmmanuelGBENOU/Alerte_vole_Benin/actions/workflows/surveillance.yml/dispatches`
+- *Execution schedule* : **Every 10 minutes**
+- Onglet *Advanced* :
+  - *Request method* : **POST**
+  - *Headers* :
+    - `Authorization` : `Bearer ` suivi du jeton
+    - `Accept` : `application/vnd.github+json`
+    - `X-GitHub-Api-Version` : `2022-11-28`
+  - *Request body* : `{"ref":"main"}`
+- *Test run* : la réponse attendue est **204**. Active aussi l'option de notification
+  en cas d'échec.
+
+Le jeton ne permet que de lancer les vérifications de ce dépôt : rien d'autre sur ton compte.
+GitHub te prévient par e-mail avant son expiration.
 
 ## Arrêter la surveillance (sans rien supprimer)
 

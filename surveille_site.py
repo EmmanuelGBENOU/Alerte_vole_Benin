@@ -136,13 +136,7 @@ def main():
     statut, titre, texte = analyser()
     print(f"Statut : {statut} ({titre})")
 
-    if "--bilan" in sys.argv:
-        ok, ko = alerter("✅ Alerte vol Bénin : surveillance active",
-                         f"Je surveille toujours {URL} toutes les 10 minutes.\n"
-                         f"État actuel : {statut} ({titre}).")
-        etat["dernier_bilan"] = maintenant.isoformat()
-
-    elif statut == "ouvert":
+    if statut == "ouvert":
         dernier = etat.get("derniere_alerte")
         premiere = not etat.get("ouvert_le")
         if dernier and maintenant - datetime.fromisoformat(dernier) < RAPPEL:
@@ -168,6 +162,19 @@ def main():
                              f"(peut-être une date annoncée) :\n\n{texte[:500]}\n\n{URL}")
         if not etat.get("empreinte") or ok:
             etat["empreinte"] = empreinte
+
+    # Bilan hebdo : au 1er passage du lundi après 7h UTC (9h à Paris l'été), quel que soit
+    # l'horaire réel du passage, car GitHub ne garantit pas l'heure des tâches planifiées.
+    dernier_bilan = etat.get("dernier_bilan")
+    bilan_du = (maintenant.weekday() == 0 and maintenant.hour >= 7
+                and (not dernier_bilan or datetime.fromisoformat(dernier_bilan).date() != maintenant.date()))
+    if statut != "ouvert" and ("--bilan" in sys.argv or bilan_du):
+        b_ok, b_ko = alerter("✅ Alerte vol Bénin : surveillance active",
+                             f"Je surveille toujours {URL} toutes les 10 minutes.\n"
+                             f"État actuel : {statut} ({titre}).")
+        ok, ko = ok + b_ok, ko + b_ko
+        if b_ok:
+            etat["dernier_bilan"] = maintenant.isoformat()
 
     FICHIER_ETAT.write_text(json.dumps(etat, indent=2, ensure_ascii=False) + "\n", "utf-8")
     sys.exit(1 if ko else 0)  # en cas d'échec d'envoi, GitHub t'envoie aussi un e-mail
